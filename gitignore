@@ -1,0 +1,9 @@
+local_lake/
+__pycache__/
+*.pyc
+.pytest_cache/
+.databricks/
+spark-warehouse/
+metastore_db/
+derby.log
+.venv/
