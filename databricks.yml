@@ -1,0 +1,74 @@
+# Databricks Asset Bundle: deploys the notebooks and the job as code.
+#   databricks bundle validate
+#   databricks bundle deploy -t dev
+#   databricks bundle run geodata_pipeline -t dev
+bundle:
+  name: marine-geodata-lakehouse
+
+variables:
+  catalog:
+    description: Unity Catalog catalog to write to
+    default: workspace
+  schema:
+    description: Schema for all tables in this project
+    default: marine_geodata
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://YOUR-WORKSPACE.cloud.databricks.com   # replace with your workspace URL
+
+  prod:
+    mode: production
+    workspace:
+      host: https://YOUR-WORKSPACE.cloud.databricks.com
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      schema: marine_geodata_prod
+
+resources:
+  jobs:
+    geodata_pipeline:
+      name: geodata-medallion-pipeline
+      description: Raw vessel files -> Bronze -> Silver (QC) -> Gold products -> anomaly model -> DQ gates
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      # Uncomment to run daily at 06:00 Singapore time.
+      # schedule:
+      #   quartz_cron_expression: "0 0 6 * * ?"
+      #   timezone_id: Asia/Singapore
+      tasks:
+        - task_key: setup
+          notebook_task:
+            notebook_path: ./notebooks/00_setup.py
+        - task_key: generate_raw_data
+          depends_on: [{task_key: setup}]
+          notebook_task:
+            notebook_path: ./notebooks/01_generate_raw_data.py
+        - task_key: bronze_ingest
+          depends_on: [{task_key: generate_raw_data}]
+          notebook_task:
+            notebook_path: ./notebooks/02_bronze_ingest.py
+        - task_key: silver_quality
+          depends_on: [{task_key: bronze_ingest}]
+          notebook_task:
+            notebook_path: ./notebooks/03_silver_quality.py
+        - task_key: gold_products
+          depends_on: [{task_key: silver_quality}]
+          notebook_task:
+            notebook_path: ./notebooks/04_gold_products.py
+        - task_key: ml_anomaly
+          depends_on: [{task_key: gold_products}]
+          notebook_task:
+            notebook_path: ./notebooks/05_ml_anomaly.py
+        - task_key: data_quality_gates
+          depends_on: [{task_key: gold_products}]
+          notebook_task:
+            notebook_path: ./notebooks/06_data_quality_gates.py
+      # No cluster defined: tasks run on serverless compute (works on Databricks Free Edition).
