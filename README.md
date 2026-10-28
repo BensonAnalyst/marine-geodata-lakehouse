@@ -1,10 +1,12 @@
 # Marine Geodata Lakehouse
 
-**A Databricks medallion pipeline that turns raw vessel and survey telemetry into governed, AI-ready data products, and proves its own data quality.**
+**Catches sensor faults (spikes, flatlines, drift, gaps) in vessel telemetry automatically, so survey lines are checked without manual review.** In a 7-day test on synthetic data (3 vessels, 189,810 raw rows), it caught every injected fault and marked 41 of 42 survey lines Deliverable, routing 1 for re-run.
+
+A Databricks medallion pipeline that turns raw vessel and survey telemetry into governed, AI-ready data products, and proves its own data quality.
 
 Uncrewed vessels and remote operations only cut cost if the data coming off them can be trusted quickly. This project shows the data-engineering layer that makes that possible: incremental ingestion, schema-drift handling, SPC-style quality control, an SCD Type 2 dimension, Gold data products, an MLflow anomaly model, and data-quality gates that fail the job before bad data reaches anyone.
 
-> All data is **synthetic** and every vessel and project name is fictional. Faults are injected on purpose and logged, so the QC can be scored against known answers.
+> All data is **synthetic** and every vessel and project name is fictional. Faults are injected on purpose and logged, so the QC can be scored against known answers. The same checks apply to other sensor data, for example SPC/FDC monitoring in semiconductor manufacturing.
 
 ---
 
